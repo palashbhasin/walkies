@@ -1,0 +1,14 @@
+{
+  "name": "walkies",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "esbuild src/main.js --bundle --minify --format=esm --outfile=public/app.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.118.0",
+    "esbuild": "^0.24.0",
+    "three": "^0.160.0"
+  },
+  "private": true
+}
