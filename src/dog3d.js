@@ -15,34 +15,41 @@ const ease = t => t < .5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2;
 const col = h => new THREE.Color(h);
 const mixHex = (a, b, t) => '#' + col(a).lerp(col(b), t).getHexString();
 
-/* ---------- 3D proportions per breed ---------- */
-export const SHAPE = {
-  golden:{size:1, leg:1, body:1, head:1, snout:1, chest:1},
-  lab:{size:1, leg:1, body:1, head:1, snout:1, chest:1.05},
-  yellowlab:{size:1, leg:1, body:1, head:1, snout:1, chest:1.05},
-  choclab:{size:1, leg:1, body:1, head:1, snout:1, chest:1.05},
-  husky:{size:1, leg:1.05, body:1, head:.98, snout:1.05, chest:1},
-  gsd:{size:1.05, leg:1.08, body:1.12, head:1, snout:1.25, chest:1.05},
-  corgi:{size:.92, leg:.5, body:1.18, head:1.05, snout:.95, chest:1.05},
-  shiba:{size:.88, leg:.95, body:.95, head:1.02, snout:.9, chest:1},
-  dalmatian:{size:1, leg:1.12, body:1, head:.98, snout:1.05, chest:.98},
-  beagle:{size:.86, leg:.82, body:1, head:1.06, snout:1, chest:1},
-  poodle:{size:.95, leg:1.18, body:.92, head:.95, snout:1.2, chest:.95},
-  pug:{size:.74, leg:.72, body:.95, head:1.22, snout:.35, chest:1.1},
-  frenchie:{size:.78, leg:.7, body:.95, head:1.22, snout:.35, chest:1.15},
-  chihuahua:{size:.6, leg:.9, body:.85, head:1.35, snout:.6, chest:.9},
-  collie:{size:1, leg:1, body:1.05, head:.95, snout:1.15, chest:1},
-  aussie:{size:1, leg:1, body:1, head:1, snout:1, chest:1},
-  bernese:{size:1.15, leg:1, body:1.1, head:1.05, snout:1, chest:1.12},
-  samoyed:{size:1.05, leg:1, body:1, head:1, snout:.9, chest:1.05},
-  pomeranian:{size:.62, leg:.68, body:.85, head:1.2, snout:.5, chest:1},
-  boxer:{size:1.05, leg:1.05, body:1, head:1.05, snout:.45, chest:1.12},
-  doberman:{size:1.1, leg:1.2, body:1, head:.95, snout:1.3, chest:1.05},
-  rottweiler:{size:1.1, leg:.95, body:1.1, head:1.1, snout:.95, chest:1.15},
-  cavalier:{size:.8, leg:.85, body:.95, head:1.1, snout:.6, chest:1},
-  greyhound:{size:1.05, leg:1.3, body:1.05, head:.85, snout:1.4, chest:1.08},
-  doodle:{size:1, leg:1, body:1, head:1.02, snout:1, chest:1}
+/* ---------- 3D body plan per breed ---------- */
+// size: overall scale. leg/legT: leg length/thickness. body: length. girth: torso thickness. chest/hip: front/rear mass.
+// tuck: waist tuck-up. slope: rear lower than shoulders. neck/neckT/neckAng: neck length/thickness/raise.
+// head, skullW (width), headLen (long skull), dome (apple head), snout, snoutW, snoutDrop, jowl.
+// earLen/earW. ruff (neck mane), fluff (body puff), feath (feathering), tailLen/tailT/tailAng, paw, eyeFwd.
+const SD = {size:1, leg:1, legT:1, body:1, girth:1, chest:1, hip:1, tuck:0, slope:0, neck:1, neckT:1, neckAng:0, head:1, skullW:1, headLen:1, dome:0, snout:1, snoutW:1, snoutDrop:0, jowl:0, earLen:1, earW:1, ruff:0, fluff:0, feath:0, tailLen:1, tailT:1, tailAng:0, paw:1, eyeFwd:0, rump:0};
+const SB = {
+  golden:{},
+  lab:{ear:'floppy', earLen:.72, earW:1.05, girth:1.12, chest:1.08, head:1.04, skullW:1.12, snoutW:1.12, legT:1.1, tail:'otter', tailT:1.35, tailLen:.95},
+  yellowlab:{ear:'floppy', earLen:.72, earW:1.05, girth:1.12, chest:1.08, head:1.04, skullW:1.12, snoutW:1.12, legT:1.1, tail:'otter', tailT:1.35, tailLen:.95},
+  choclab:{ear:'floppy', earLen:.72, earW:1.05, girth:1.12, chest:1.08, head:1.04, skullW:1.12, snoutW:1.12, legT:1.1, tail:'otter', tailT:1.35, tailLen:.95},
+  husky:{size:.95, leg:1.04, girth:.95, tuck:.15, head:.96, snout:1.05, snoutW:.95, earLen:1.05, earW:1.15, ruff:.55, fluff:.2, tail:'plume', tailT:1.05},
+  gsd:{size:1.08, leg:1.05, body:1.15, girth:1.02, chest:1.1, hip:.92, slope:1, tuck:.25, neck:1.12, neckAng:.12, head:.98, headLen:1.25, snout:1.3, snoutW:.9, earLen:1.2, ruff:.3, feath:.25, tail:'sweep', tailT:1.2, tailLen:1.2},
+  corgi:{size:.66, leg:.48, legT:1.15, body:1.3, girth:1.08, chest:1.1, hip:1.05, neck:.85, head:1.12, skullW:1.05, snout:.82, earLen:1.4, earW:1.15, ruff:.45, rump:1, paw:1.05},
+  shiba:{size:.78, leg:.96, girth:.98, chest:1.02, head:1.06, skullW:1.12, snout:.8, snoutW:1.05, earLen:.85, earW:1.05, ruff:.35, tail:'curl', tailT:1.4},
+  dalmatian:{size:1.02, leg:1.14, legT:.9, girth:.92, tuck:.4, neck:1.12, neckAng:.08, head:.96, headLen:1.1, snout:1.1, snoutW:.95, tailLen:1.2, tailAng:-.2},
+  beagle:{size:.74, leg:.86, legT:1.05, body:1.02, girth:1.04, head:1.08, headLen:1.05, snout:1.02, snoutW:1.1, snoutDrop:.08, jowl:.25, earLen:1.25, earW:1.1, tail:'flag', tailAng:.5, tailLen:.9},
+  poodle:{size:.98, leg:1.2, legT:.72, body:.88, girth:.85, chest:1.05, hip:.82, tuck:.5, neck:1.35, neckAng:.28, neckT:.85, head:.88, headLen:1.25, snout:1.35, snoutW:.72, coat:'clip', tail:'pom', tailAng:.6},
+  pug:{size:.62, leg:.66, legT:1.15, body:.82, girth:1.1, chest:1.1, neck:.85, neckAng:.35, neckT:1.0, head:1.3, skullW:1.12, dome:.4, snout:.2, snoutW:1.3, jowl:.3, earLen:.8, eyeFwd:1, tail:'curl', tailT:1.2},
+  frenchie:{size:.66, leg:.66, legT:1.2, body:.85, girth:1.08, chest:1.25, hip:.82, tuck:.25, neck:.85, neckAng:.35, neckT:1.05, head:1.32, skullW:1.25, dome:.2, snout:.22, snoutW:1.4, jowl:.3, earLen:1.55, earW:1.35, eyeFwd:1, paw:1.1},
+  chihuahua:{size:.46, leg:.95, legT:.72, body:.85, girth:.82, tuck:.3, neck:.85, neckAng:.15, head:1.5, dome:.85, skullW:1.1, snout:.45, snoutW:.72, earLen:1.45, earW:1.15, eyeFwd:.7, tail:'sickle', tailT:.8, paw:.8},
+  collie:{size:1, leg:1.02, legT:.95, body:1.05, girth:.98, neck:1.08, neckAng:.08, head:.9, headLen:1.25, snout:1.25, snoutW:.85, earLen:.9, ruff:1.25, fluff:.35, feath:.7, tail:'sweep', tailT:1.35, tailLen:1.15},
+  aussie:{size:.92, leg:.98, girth:1.0, head:.98, headLen:1.05, snout:1.0, ruff:.85, fluff:.25, feath:.55, rump:.6},
+  bernese:{size:1.15, leg:1.02, legT:1.2, body:1.08, girth:1.05, chest:1.08, hip:1.0, neckT:1.0, head:1.1, skullW:1.2, snout:.95, snoutW:1.15, jowl:.25, earLen:.9, earW:1.25, ruff:.7, fluff:.3, feath:.6, tail:'sweep', tailT:1.4, tailAng:-.4},
+  samoyed:{size:1.0, leg:.96, girth:1.05, head:1.0, skullW:1.1, snout:.85, earLen:.85, earW:1.15, ruff:1.5, fluff:1.0, feath:.6, tail:'plume', tailT:1.5},
+  pomeranian:{size:.5, leg:.55, legT:.85, body:.8, girth:1.05, neck:.6, head:1.05, skullW:1.05, snout:.42, snoutW:.85, earLen:.7, ruff:2.0, fluff:1.4, feath:.6, tail:'plume', tailT:1.8, eyeFwd:.6},
+  boxer:{size:1.04, leg:1.1, legT:1.0, girth:.95, chest:1.15, hip:.9, tuck:.45, neck:1.12, neckT:1.0, neckAng:.12, head:1.06, skullW:1.08, snout:.38, snoutW:1.45, jowl:.8, earLen:1.05, eyeFwd:.4},
+  doberman:{size:1.1, leg:1.18, legT:.88, body:1.0, girth:.9, chest:1.12, hip:.88, tuck:.6, neck:1.15, neckAng:.12, neckT:.9, head:.9, headLen:1.3, snout:1.35, snoutW:.85, earLen:1.4, earW:.85},
+  rottweiler:{ear:'floppy', earLen:.62, size:1.08, leg:1.0, legT:1.2, body:1.08, girth:1.1, chest:1.15, hip:1.0, tuck:.15, neck:.95, neckT:1.1, head:1.18, skullW:1.3, snout:.82, snoutW:1.3, jowl:.45, earW:1.2, paw:1.15},
+  cavalier:{size:.62, leg:.86, legT:.9, body:.95, girth:.95, head:1.12, dome:.45, snout:.5, snoutW:1.05, earLen:1.35, earW:1.2, feath:.75, tail:'flag', tailT:1.3, eyeFwd:.6},
+  greyhound:{size:1.06, leg:1.3, legT:.7, body:1.15, girth:.8, chest:1.18, hip:.85, tuck:1, neck:1.15, neckT:.78, neckAng:-.05, head:.84, headLen:1.45, snout:1.55, snoutW:.68, ear:'rose', tail:'whip', tailT:.75, tailLen:1.35, tailAng:-.55, paw:.8},
+  doodle:{size:.92, leg:.98, legT:1.1, girth:1.04, head:1.05, skullW:1.15, dome:.3, snout:.82, snoutW:1.15, earLen:1.1, earW:1.2, fluff:.55, feath:.4}
 };
+export const SHAPE = {};
+Object.keys(SB).forEach(k => { SHAPE[k] = Object.assign({}, SD, SB[k]); });
 
 /* ---------- palette ---------- */
 export function palette3(dog){
@@ -150,8 +157,16 @@ class Emitter {
 }
 
 /* ---------- the dog ---------- */
+function muzzleGeo(P, hr){
+  const sn = P.snout, mlen = .1 + .22*sn, base = hr*(.6 + .18*(P.headLen - 1));
+  const mw = (sn < .6 ? 1.25 : 1)*P.snoutW;
+  const m1 = V(base, -hr*.18, 0), r1 = hr*.52*Math.min(1.25, mw);
+  const m2 = V(base + hr*.02 + mlen*.6, -hr*.2 - .02*sn - P.snoutDrop*hr, 0), r2 = hr*(.36 + .06*(1-sn))*mw;
+  const nose = m2.clone().add(V(r2*.88, r2*.25, 0));
+  return {m1, r1, m2, r2, nose, mw, sn};
+}
 const POSES = ['stand','sit','lie','paw'];
-class Dog {
+export class Dog {
   constructor(dog, {res = 52, thumb = false} = {}){
     this.data = dog; this.P = palette3(dog); this.thumb = thumb;
     this.root = new THREE.Group();          // position + heading
@@ -186,34 +201,45 @@ class Dog {
 
   /* joints for a pose */
   joints(name){
-    const P = this.P, L = P.leg, B = P.body, ck = P.chest;
-    const bl = .34*B, legH = .58*L, by = .12 + legH + .02, z = .155*Math.max(.85, ck);
+    const P = this.P, L = P.leg, B = P.body, ck = P.chest, g = P.girth, n = P.neck;
+    const bl = .34*B, legH = .58*L, by = .12 + legH + .02, z = .155*Math.max(.85, ck)*Math.max(.9, g);
+    const hd = (this.hr || .25*P.head) - .25;
+    const na = P.neckAng, ca = Math.cos(na), sa = Math.sin(na);
+    const nk = (base, x, y, s) => { const xx = x*s, yy = y*s; return base.clone().add(V(xx*ca - yy*sa, xx*sa + yy*ca, 0)); };
+    const headFrom = (c, x, y) => nk(c, x, y, n).add(V(hd*.55, hd*.75, 0));
+    const Lb = clamp(L, .55, 1.25), Lf = Math.max(.55, L);
     const J = {};
     if (name === 'stand' || name === 'paw0') {
-      J.chest = V(bl, by+.05, 0); J.mid = V(0, by, 0); J.hips = V(-bl, by+.04, 0);
+      J.chest = V(bl, by+.05, 0); J.mid = V(0, by + .025*P.tuck, 0); J.hips = V(-bl, by + .04 - .085*P.slope, 0);
+      const hy = J.hips.y;
       J.FL = [V(bl+.03, by-.2, z), V(bl+.05, .12 + legH*.45, z), V(bl+.08, .11, z)];
       J.FR = [V(bl+.03, by-.2, -z), V(bl+.05, .12 + legH*.45, -z), V(bl+.08, .11, -z)];
-      J.BL = [V(-bl-.02, by-.1, z+.01), V(-bl-.12, .12 + legH*.5, z), V(-bl-.04, .11, z)];
-      J.BR = [V(-bl-.02, by-.1, -z-.01), V(-bl-.12, .12 + legH*.5, -z), V(-bl-.04, .11, -z)];
-      J.neck = [V(bl+.2, by+.24, 0), V(bl+.28, by+.42, 0)];
-      J.head = V(bl+.36, by+.6, 0); J.pitch = 0; J.tailBase = V(-bl-.26, by+.16, 0); J.tailAng = 1.0;
+      J.BL = [V(-bl-.02, hy-.14, z+.01), V(-bl-.12 - .07*P.slope, .12 + legH*.5 - .03*P.slope, z), V(-bl-.04 - .05*P.slope, .11, z)];
+      J.BR = [V(-bl-.02, hy-.14, -z-.01), V(-bl-.12 - .07*P.slope, .12 + legH*.5 - .03*P.slope, -z), V(-bl-.04 - .05*P.slope, .11, -z)];
+      J.neck = [nk(J.chest, .2, .19, n), nk(J.chest, .28, .37, n)];
+      J.head = headFrom(J.chest, .36, .55); J.pitch = 0;
+      J.tailBase = V(-bl - .26*Math.max(.8, P.hip*g), hy + .12, 0); J.tailAng = 1.0 + P.tailAng;
     } else if (name === 'sit' || name === 'paw') {
       const sy = .12 + legH*.95;
-      J.chest = V(.2, sy+.2, 0); J.mid = V(-.04, sy-.04, 0); J.hips = V(-.24, .36, 0);
-      J.FL = [V(.26, sy, z), V(.29, .12 + legH*.45, z), V(.32, .11, z)];
-      J.FR = name === 'paw' ? [V(.3, sy+.02, -z), V(.5, sy+.08, -z-.02), V(.66, sy+.2, -z-.03)] : [V(.26, sy, -z), V(.29, .12 + legH*.45, -z), V(.32, .11, -z)];
-      J.BL = [V(-.18, .3, z+.07), V(-.04, .15, z+.08), V(.1, .1, z+.06)];
-      J.BR = [V(-.18, .3, -z-.07), V(-.04, .15, -z-.08), V(.1, .1, -z-.06)];
-      J.neck = [V(.3, sy+.44, 0), V(.34, sy+.62, 0)];
-      J.head = V(.4, sy+.82, 0); J.pitch = 0; J.tailBase = V(-.42, .22, 0); J.tailAng = .1;
+      J.chest = V(.2*B, sy+.2, 0); J.mid = V(-.04*B, sy-.04, 0); J.hips = V(-.24*B, .2 + .16*Lb*Math.max(.9, P.hip*g), 0);
+      const cx = J.chest.x, hx = J.hips.x, hy = J.hips.y;
+      J.FL = [V(cx+.06, sy, z), V(cx+.09, .12 + legH*.45, z), V(cx+.12, .11, z)];
+      J.FR = name === 'paw' ? [V(cx+.1, sy+.02, -z), V(cx+.1 + .2*Lf, sy+.08, -z-.02), V(cx+.1 + .36*Lf, sy+.2*Lf, -z-.03)] : [V(cx+.06, sy, -z), V(cx+.09, .12 + legH*.45, -z), V(cx+.12, .11, -z)];
+      J.BL = [V(hx+.06, hy-.06, z+.07), V(hx + .2*Lb, .15, z+.08), V(hx + .34*Lb, .1, z+.06)];
+      J.BR = [V(hx+.06, hy-.06, -z-.07), V(hx + .2*Lb, .15, -z-.08), V(hx + .34*Lb, .1, -z-.06)];
+      J.neck = [nk(J.chest, .1, .24, n), nk(J.chest, .14, .42, n)];
+      J.head = headFrom(J.chest, .2, .62); J.pitch = 0;
+      J.tailBase = V(hx - .18, Math.max(.12, hy - .14), 0); J.tailAng = .1;
     } else if (name === 'lie') {
-      J.chest = V(bl, .31, 0); J.mid = V(0, .29, 0); J.hips = V(-bl, .3, 0);
-      J.FL = [V(bl+.12, .2, z), V(bl+.36, .12, z+.01), V(bl+.58, .1, z)];
-      J.FR = [V(bl+.12, .2, -z), V(bl+.36, .12, -z-.01), V(bl+.58, .1, -z)];
-      J.BL = [V(-bl+.04, .25, z+.12), V(-bl+.2, .13, z+.16), V(-bl+.36, .1, z+.16)];
-      J.BR = [V(-bl+.04, .25, -z-.12), V(-bl+.2, .13, -z-.16), V(-bl+.36, .1, -z-.16)];
-      J.neck = [V(bl+.22, .43, 0), V(bl+.32, .5, 0)];
-      J.head = V(bl+.46, .44, 0); J.pitch = -.12; J.tailBase = V(-bl-.27, .28, 0); J.tailAng = -.15;
+      const ly = .1 + .21*g*Math.max(1, ck*.9);
+      J.chest = V(bl, ly, 0); J.mid = V(0, ly-.02, 0); J.hips = V(-bl, ly-.01, 0);
+      J.FL = [V(bl+.12, .2, z), V(bl+.12 + .24*Lf, .12, z+.01), V(bl+.12 + .46*Lf, .1, z)];
+      J.FR = [V(bl+.12, .2, -z), V(bl+.12 + .24*Lf, .12, -z-.01), V(bl+.12 + .46*Lf, .1, -z)];
+      J.BL = [V(-bl+.04, .25, z+.12), V(-bl+.04 + .16*Lf, .13, z+.16), V(-bl+.04 + .32*Lf, .1, z+.16)];
+      J.BR = [V(-bl+.04, .25, -z-.12), V(-bl+.04 + .16*Lf, .13, -z-.16), V(-bl+.04 + .32*Lf, .1, -z-.16)];
+      J.neck = [J.chest.clone().add(V(.22*n, .12, 0)), J.chest.clone().add(V(.32*n, .19, 0))];
+      J.head = J.chest.clone().add(V(.46*n + hd*.5, .13 + hd*.6, 0)); J.pitch = -.12;
+      J.tailBase = V(-bl - .27, ly - .03, 0); J.tailAng = -.15;
     }
     return J;
   }
@@ -246,7 +272,7 @@ class Dog {
     const snout = P.snout, front = hr*.78;
     [1,-1].forEach(s => {
       const g = new THREE.Group();
-      g.position.copy(V(.78, .26, s*.5).normalize().multiplyScalar(hr*.97));
+      g.position.copy(V(.78 + .12*P.eyeFwd, .26, s*.5*Math.min(1.2, P.skullW)*(1 - .12*P.eyeFwd)).normalize().multiplyScalar(hr*(.97 + .04*P.dome)));
       const e = new THREE.Mesh(new THREE.SphereGeometry(eyeR, 24, 16), eyeMat); e.scale.set(.75, 1, 1);
       const hi = new THREE.Mesh(new THREE.SphereGeometry(eyeR*.3, 10, 8), hiMat); hi.position.set(eyeR*.6, eyeR*.35, -s*eyeR*.15);
       g.add(e, hi); H.add(g); this.eyes.push(g);
@@ -254,15 +280,15 @@ class Dog {
     // brows for tan breeds
     if (this.has('tan')) [1,-1].forEach(s => { const b = new THREE.Mesh(new THREE.SphereGeometry(eyeR*.65, 12, 8), new THREE.MeshStandardMaterial({color:col(P.tan), roughness:.7})); b.position.set(front*.82, hr*.45, s*hr*.38); b.scale.set(.6,.7,1); H.add(b); });
     // nose at muzzle tip
-    const mlen = .1 + .22*snout, mw = snout < .6 ? 1.25 : 1, m2r = hr*(.36 + .06*(1-snout))*mw;
-    this.noseLocal = V(hr*.62 + mlen*.6 + m2r*.88, -hr*.2 - .02*snout + m2r*.25, 0);
-    const nose = new THREE.Mesh(new THREE.SphereGeometry(.052*Math.max(.8, P.head), 20, 14), new THREE.MeshPhysicalMaterial({color:0x14100e, roughness:.25, clearcoat:1}));
+    const MG = muzzleGeo(P, hr), m2r = MG.r2; this.MG = MG;
+    this.noseLocal = MG.nose.clone();
+    const nose = new THREE.Mesh(new THREE.SphereGeometry(.052*Math.max(.8, P.head)*Math.max(.8, Math.min(1.3, P.snoutW)), 20, 14), new THREE.MeshPhysicalMaterial({color:0x14100e, roughness:.25, clearcoat:1}));
     nose.scale.set(.85, .75, 1.15); nose.position.copy(this.noseLocal); H.add(nose); this.nose = nose;
     // tongue
     const tg = new THREE.Mesh(new THREE.CapsuleGeometry(.035, .06, 6, 12), new THREE.MeshStandardMaterial({color:0xff7a93, roughness:.4}));
     tg.scale.set(1, 1, 1.4); tg.position.set(this.noseLocal.x - m2r*.7, this.noseLocal.y - m2r*.95, 0); H.add(tg); this.tongueMesh = tg;
     // ears
-    const earMat = furMaterial(P, {color: (this.has('cap') || this.has('patches') || this.has('saddle')) ? P.earFill : (P.ear === 'small' && !BREEDS[this.data.look].earFill ? mixHex(P.fur, '#000000', .12) : (P.ear === 'pointy' || P.ear === 'bat' || P.ear === 'fold' || P.ear === 'pompom') ? P.fur : P.earFill)});
+    const earMat = furMaterial(P, {color: (this.has('cap') || this.has('patches') || this.has('saddle')) ? P.earFill : (P.ear === 'small' && !BREEDS[this.data.look].earFill ? mixHex(P.fur, '#000000', .12) : (P.ear === 'pointy' || P.ear === 'bat' || P.ear === 'fold' || P.ear === 'pompom' || P.ear === 'rose') ? P.fur : P.earFill)});
     this.mats.push(earMat);
     const innerMat = new THREE.MeshStandardMaterial({color:0xe8a3a3, roughness:.8});
     this.ears = [];
@@ -270,26 +296,31 @@ class Dog {
       const pivot = new THREE.Group(); H.add(pivot); this.ears.push(pivot);
       let m;
       if (P.ear === 'floppy' || P.ear === 'small' || P.ear === 'long') {
-        const len = P.ear === 'long' ? .44 : P.ear === 'small' ? .2 : .34;
-        pivot.position.copy(V(-.15, .72, s*.68).normalize().multiplyScalar(hr*.98));
+        const len = (P.ear === 'long' ? .44 : P.ear === 'small' ? .2 : .34)*P.earLen;
+        pivot.position.copy(V(-.15, P.ear === 'long' ? .6 : .72, s*.68*P.skullW).normalize().multiplyScalar(hr*(.98 + .05*(P.skullW - 1))));
         m = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), earMat);
-        m.scale.set(.12*P.head*(P.ear === 'small' ? 1.2 : 1), len*P.head*.5, .045);
+        m.scale.set(.12*P.head*P.earW*(P.ear === 'small' ? 1.2 : 1), len*P.head*.5, .045);
         m.position.set(.0, -len*P.head*.42, s*.06);
         pivot.rotation.x = -s*(P.ear === 'small' ? .9 : .16); pivot.rotation.z = P.ear === 'small' ? -.5 : .12;
-        if (P.feather) { const f = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), earMat); f.scale.set(.1, .12, .06); f.position.set(.02, -len*.75, s*.04); pivot.add(f); }
+        if (P.feather) { const f = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), earMat); f.scale.set(.1*P.earW, .14, .06); f.position.set(.02, -len*P.head*.75, s*.04); pivot.add(f); }
       } else if (P.ear === 'pointy' || P.ear === 'bat' || P.ear === 'fold') {
         const big = P.bigEar ? 1.25 : 1, bat = P.ear === 'bat';
-        const h = (bat ? .3 : .24) * big * P.head, r = (bat ? .13 : .1) * big * P.head;
-        pivot.position.copy(V(-.12, .82, s*.55).normalize().multiplyScalar(hr*.9));
-        pivot.rotation.x = s*-(bat ? .55 : .3);
+        const h = (bat ? .3 : .24) * big * P.head * P.earLen, r = (bat ? .13 : .1) * big * P.head * P.earW;
+        pivot.position.copy(V(-.12, .82, s*.55*Math.min(1.25, P.skullW)).normalize().multiplyScalar(hr*(.9 + .08*P.dome)));
+        pivot.rotation.x = bat ? s*.32 : s*-.3; if (bat) pivot.rotation.z = -.15;
         const geo = new THREE.ConeGeometry(r, h, 24, 1, false); geo.translate(0, h/2, 0); geo.scale(.55, 1, 1);
         m = new THREE.Mesh(geo, earMat);
-        const inner = new THREE.Mesh(geo, innerMat); inner.scale.set(.6, .78, .7); inner.position.set(r*.32, h*.06, 0); pivot.add(inner);
+        const inner = new THREE.Mesh(geo, innerMat); inner.scale.set(.6, bat ? .7 : .78, bat ? .6 : .7); inner.position.set(r*.32, h*.06, 0); pivot.add(inner);
         if (P.ear === 'fold') { const tip = new THREE.Mesh(new THREE.ConeGeometry(r*.6, h*.45, 16).translate(0, h*.22, 0), earMat); tip.position.set(.0, h*.72, 0); tip.rotation.z = -1.9; pivot.add(tip); m.scale.y = .78; inner.scale.y = .6; }
+      } else if (P.ear === 'rose') {
+        pivot.position.copy(V(-.45, .62, s*.6).normalize().multiplyScalar(hr*.95));
+        pivot.rotation.set(-s*.5, s*.4, .9);
+        m = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), earMat);
+        m.scale.set(.05, .12*P.head*P.earLen, .035); m.position.set(-.02, .06*P.head, 0);
       } else if (P.ear === 'pompom') {
         pivot.position.copy(V(-.05, .3, s*.95).normalize().multiplyScalar(hr*1.02));
         m = new THREE.Group();
-        [[0,-.05,.13],[0,-.2,.15],[.02,-.34,.13]].forEach(c => { const b = new THREE.Mesh(new THREE.SphereGeometry(c[2]*P.head, 16, 12), earMat); b.position.set(c[0], c[1]*P.head, 0); m.add(b); });
+        (P.coat === 'clip' ? [[0,-.05,.11],[0,-.2,.14],[.02,-.36,.15],[.03,-.5,.13]] : [[0,-.05,.13],[0,-.2,.15],[.02,-.34,.13]]).forEach(c => { const b = new THREE.Mesh(new THREE.SphereGeometry(c[2]*P.head, 16, 12), earMat); b.position.set(c[0], c[1]*P.head, 0); m.add(b); });
       }
       if (m) { m.castShadow = true; pivot.add(m); }
       pivot.userData.base = pivot.rotation.clone(); pivot.userData.s = s;
@@ -354,7 +385,7 @@ class Dog {
       this.head.add(g);
     }
     // collar + bandana on neck anchor (neck anchor: local x points along neck, y up-ish)
-    const cid = eq.collar, nr = .25*Math.max(.9, P.chest);
+    const cid = eq.collar, nr = .25*P.neckT*Math.max(.9, Math.min(P.chest, 1.05));
     const collarCol = cid ? (ITEM[cid].c || '#f2c14e') : '#7a4b2a';
     const cm = cid === 'collar_gold' ? gold : std(collarCol, {roughness:.4});
     const ring = new THREE.Mesh(new THREE.TorusGeometry(nr, nr*.16, 12, 40), cm); ring.rotation.y = Math.PI/2; this.neck.add(ring);
@@ -392,18 +423,30 @@ class Dog {
     const P = this.P, c = this.colors, mc = this.mc, has = m => this.has(m);
     mc.reset();
     const fur = p => this.colorAtY(p.y) || c.fur;
-    const ck = P.chest, fluffy = P.coat === 'fluffy', curly = P.coat === 'curly';
+    const ck = P.chest, g = P.girth, tk = P.tuck, curly = P.coat === 'curly', clip = P.coat === 'clip';
+    const ruff = P.ruff || (P.coat === 'fluffy' ? .6 : 0), fluff = P.fluff, fe = P.feath;
+    const light = has('mask') || has('blaze') ? c.belly : null;
     // torso
-    const midR = .28*(this.data.look === 'greyhound' ? .82 : 1);
-    this.cap(J.chest, J.mid, .32*ck, midR, fur(J.chest)); this.cap(J.mid, J.hips, midR, .29, fur(J.hips));
-    const bellyP = J.mid.clone().lerp(J.chest, .4); bellyP.y -= .17; this.ball(bellyP, .2, c.belly);
-    const bib = J.chest.clone(); bib.x += .2; bib.y -= .03; this.ball(bib, .15*ck, (has('mask') || has('blaze') || has('tan')) ? (has('tan') ? c.tan : c.belly) : fur(bib));
-    if (has('saddle') || has('cap')) { const s1 = J.mid.clone(); s1.y += .18; this.ball(s1, .2, c.dark); if (has('saddle')) { const s2 = J.hips.clone(); s2.y += .16; this.ball(s2, .18, c.dark); } }
+    const chR = .32*g*(1 + (ck - 1)*.45), midR = .28*g*(1 - .32*tk), hipR = .29*g*P.hip*(clip ? .9 : 1);
+    this.cap(J.chest, J.mid, chR, midR, fur(J.chest)); this.cap(J.mid, J.hips, midR, hipR, fur(J.hips));
+    if (tk < .7) { const bellyP = J.mid.clone().lerp(J.chest, .4); bellyP.y -= .17*g - .05*tk; this.ball(bellyP, .2*g*(1 - .6*tk), c.belly); }
+    if (ck > 1.08) { const keel = J.chest.clone().add(V(.04, -.1*ck, 0)); this.ball(keel, .16*ck*g, fur(keel)); }
+    const bib = J.chest.clone(); bib.x += .2*Math.max(.9, ck); bib.y -= .03; this.ball(bib, .15*ck*g, (has('mask') || has('blaze') || has('tan')) ? (has('tan') ? c.tan : c.belly) : fur(bib));
+    if (has('saddle') || has('cap')) { const s1 = J.mid.clone(); s1.y += .18*g; this.ball(s1, .2*g, c.dark); if (has('saddle')) { const s2 = J.hips.clone(); s2.y += .16*g; this.ball(s2, .18*g, c.dark); } }
+    if (P.rump) { const r = J.hips.clone().add(V(-.12, .02, 0)); this.ball(r, .2*P.rump*g, fur(r)); [1,-1].forEach(s => this.ball(J.hips.clone().add(V(-.16, -.06, s*.1)), .14*P.rump, light || fur(r))); }
     // neck
-    this.cap(J.chest, J.neck[0], .24*ck, .2*Math.max(.9, ck), fur(J.neck[0])); this.cap(J.neck[0], J.neck[1], .2*Math.max(.9, ck), .18*Math.max(.9, ck), fur(J.neck[1])); this.cap(J.neck[1], J.head, .17, .17, fur(J.head));
-    if (fluffy) { for (let i = 0; i < 6; i++) { const a = i/5*Math.PI - Math.PI/2; const p = J.neck[0].clone().add(V(.06, -.05 + Math.sin(a)*.04, Math.cos(a)*.17)); this.ball(p, .17, i === 2 || i === 3 ? c.belly : fur(p)); } }
+    const nT = P.neckT*Math.max(.9, Math.min(ck, 1.05));
+    this.cap(J.chest, J.neck[0], .24*nT, .2*nT, fur(J.neck[0])); this.cap(J.neck[0], J.neck[1], .2*nT, .18*nT, fur(J.neck[1])); this.cap(J.neck[1], J.head, .17*nT, .17*Math.min(1.1, nT), fur(J.head));
+    // ruff / mane
+    if (ruff > 0) {
+      const ctr = J.neck[0].clone().lerp(J.neck[1], .25), R = .13 + .06*ruff, rr = .1 + .065*ruff, N = 10;
+      for (let i = 0; i < N; i++) { const a = i/N*Math.PI*2, p = ctr.clone().add(V(.04 + .05*Math.cos(a)*0, Math.sin(a)*R*.85 - .03, Math.cos(a)*R)); const front = Math.sin(a) < -.2; this.ball(p, rr*(front ? 1.1 : .95), front && light ? light : fur(p)); }
+      const chestFluff = J.chest.clone().add(V(.2 + .03*ruff, -.04, 0)); this.ball(chestFluff, .12 + .07*ruff, light || (has('tan') ? c.tan : fur(chestFluff)));
+    }
+    if (clip) { const mane = J.chest.clone().add(V(.06, .04, 0)); this.ball(mane, chR*1.15, fur(mane)); [1,-1].forEach(s => { const r = J.hips.clone().add(V(-.04, .06, s*.14)); this.ball(r, .14, fur(r)); }); }
+    if (fluff > 0) [[J.chest, .02, .14, .15],[J.mid, 0, .15, .13],[J.hips, -.04, .13, .14]].forEach(q => [1,-1].forEach(s => { const p = q[0].clone().add(V(q[1], q[2]*g, s*q[3]*g)); this.ball(p, .16*fluff*g, fur(p)); }));
     // legs
-    const legR = [[.14,.095,.105],[.18,.095,.105]];
+    const lt = P.legT, legR = [[.14*lt*Math.max(1, g*.95), .095*lt, .105*P.paw],[.18*lt*Math.max(1, P.hip*g*.95), .095*lt, .105*P.paw]];
     ['FL','FR','BL','BR'].forEach((k, li) => {
       const L = J[k], rr = legR[li < 2 ? 0 : 1];
       const lower = has('socks') || has('tan') ? c.paw : fur(L[1]);
@@ -411,20 +454,33 @@ class Dog {
       this.cap(L[1], L[2], rr[1]*.95, rr[1]*.9, lower);
       const pw = L[2].clone(); pw.x += .03; this.ball(pw, rr[2], c.paw);
       if (curly) { const cuff = L[2].clone(); cuff.y += .06; this.ball(cuff, .13, fur(cuff)); }
+      if (clip) { const cuff = L[2].clone(); cuff.y += .07; this.ball(cuff, .12, fur(cuff)); }
+      if (fe > 0) { const back = L[0].clone().lerp(L[1], .55).add(V(li < 2 ? -.07 : -.09, -.01, 0)); this.ball(back, (li < 2 ? .07 : .1)*fe + .02, li < 2 && light ? light : fur(back)); }
     });
-    // spots / merle
-    if (has('spots')) [[J.chest, .7, .3, .6],[J.mid, -.2, .8, .5],[J.hips, -.6, .2, .7],[J.mid, .3, .5, -.7],[J.hips, .2, .7, -.5],[J.chest, .2, .6, -.7],[J.mid, .1, -.2, .95]].forEach(s => { const d = V(s[1], s[2], s[3]).normalize(); const p = s[0].clone().addScaledVector(d, .26); this.ball(p, .075, c.spots); });
-    if (has('merle')) [[J.chest, .3, .6, .6, 'dark'],[J.mid, -.3, .7, -.5, 'grey'],[J.hips, -.5, .5, .5, 'dark'],[J.mid, .2, .6, .7, 'grey']].forEach(s => { const d = V(s[1], s[2], s[3]).normalize(); const p = s[0].clone().addScaledVector(d, .22); this.ball(p, .12, c[s[4]]); });
-    if (curly) [[J.chest,.3,.7,.5],[J.mid,0,.9,.3],[J.hips,-.4,.7,-.4],[J.mid,.1,.6,-.7],[J.hips,-.3,.4,.8],[J.chest,.4,.5,-.6]].forEach(s => { const d = V(s[1], s[2], s[3]).normalize(); const p = s[0].clone().addScaledVector(d, .27); this.ball(p, .1, fur(p)); });
+    if (fe > 0) { [.15, .55].forEach(k => { const p = J.mid.clone().lerp(J.chest, k); p.y -= midR*.95; this.ball(p, .09*fe + .02, light || fur(p)); }); }
+    // spots / merle / curls
+    const sR = .26*g;
+    if (has('spots')) [[J.chest, .7, .3, .6],[J.mid, -.2, .8, .5],[J.hips, -.6, .2, .7],[J.mid, .3, .5, -.7],[J.hips, .2, .7, -.5],[J.chest, .2, .6, -.7],[J.mid, .1, -.2, .95],[J.hips, -.3, .8, .1],[J.chest, .5, .7, 0]].forEach(s => { const d = V(s[1], s[2], s[3]).normalize(); const p = s[0].clone().addScaledVector(d, sR); this.ball(p, .07, c.spots); });
+    if (has('merle')) [[J.chest, .3, .6, .6, 'dark'],[J.mid, -.3, .7, -.5, 'grey'],[J.hips, -.5, .5, .5, 'dark'],[J.mid, .2, .6, .7, 'grey'],[J.hips, -.2, .8, -.5, 'dark'],[J.chest, .2, .7, -.6, 'grey'],[J.mid, 0, .95, 0, 'dark']].forEach(s => { const d = V(s[1], s[2], s[3]).normalize(); const p = s[0].clone().addScaledVector(d, .25*g); this.ball(p, .11, c[s[4]]); });
+    if (curly) [[J.chest,.3,.7,.5],[J.mid,0,.9,.3],[J.hips,-.4,.7,-.4],[J.mid,.1,.6,-.7],[J.hips,-.3,.4,.8],[J.chest,.4,.5,-.6],[J.mid,-.1,.5,.85],[J.chest,.1,.9,-.2]].forEach(s => { const d = V(s[1], s[2], s[3]).normalize(); const p = s[0].clone().addScaledVector(d, .27*g); this.ball(p, .1, fur(p)); });
     // tail
-    const tb = J.tailBase, ang = J.tailAng, wagA = this.wagAngle;
-    const tailSpec = {wag:[14,.07,.045,.46], thin:[16,.045,.028,.52], bushy:[12,.11,.075,.5], curl:[16,.07,.055,.5], stub:[1,.085,.085,0], pom:[10,.04,.035,.34]}[P.tail] || [14,.07,.045,.46];
+    const tb = J.tailBase, ang = J.tailAng, wagA = this.wagAngle, tt = P.tailT, tl = P.tailLen;
+    const tailSpec = {wag:[14,.07,.045,.46], otter:[14,.085,.04,.46], thin:[16,.045,.028,.52], whip:[18,.042,.02,.56], flag:[14,.06,.04,.44], sweep:[14,.1,.07,.5], bushy:[12,.11,.075,.5], curl:[16,.07,.055,.5], plume:[16,.09,.08,.5], sickle:[14,.05,.035,.4], stub:[1,.085,.085,0], pom:[10,.04,.035,.34]}[P.tail] || [14,.07,.045,.46];
+    const curled = (P.tail === 'curl' || P.tail === 'plume' || P.tail === 'sickle') && this.pose.lie < .5;
     for (let i = 0; i < tailSpec[0]; i++) {
       const k = tailSpec[0] > 1 ? i/(tailSpec[0]-1) : 0; let p;
-      if (P.tail === 'curl' && this.pose.lie < .5) { const a = Math.PI*.15 + k*Math.PI*1.25; p = tb.clone().add(V(-.12 + Math.cos(a + Math.PI)*-.12, .14 + Math.sin(a)*.16, 0)); p.z += Math.sin(wagA)*.06*k; }
-      else { const len = tailSpec[3]*k, a = ang + k*.5 - .15; p = tb.clone().add(V(-Math.cos(a)*len, Math.sin(a)*len, 0)); p.z += Math.sin(wagA)*len*.8; p.x += (1 - Math.cos(wagA))*len*.3; }
-      const tc = i === tailSpec[0]-1 && P.tip ? c.tip : fur(p);
-      this.ball(p, lerp(tailSpec[1], tailSpec[2], k), tc);
+      if (curled) {
+        const big = P.tail === 'plume' ? 1.35 : P.tail === 'sickle' ? 1.1 : 1, sweep = P.tail === 'curl' ? 1.25 : P.tail === 'sickle' ? .85 : 1.05;
+        const a = Math.PI*.15 + k*Math.PI*sweep;
+        p = tb.clone().add(V((-.12 + Math.cos(a + Math.PI)*-.12)*big*tl, (.14 + Math.sin(a)*.16)*big*tl, 0));
+        if (P.tail === 'plume') p.x += k*k*.12; p.z += Math.sin(wagA)*.06*k;
+      } else {
+        const len = tailSpec[3]*k*tl, droop = P.tail === 'sweep' || P.tail === 'whip' ? -.9*k : P.tail === 'flag' ? -.1*k : 0;
+        const a = ang + k*.5 - .15 + droop; p = tb.clone().add(V(-Math.cos(a)*len, Math.sin(a)*len, 0)); p.z += Math.sin(wagA)*len*.8; p.x += (1 - Math.cos(wagA))*len*.3;
+      }
+      const tc = i >= tailSpec[0] - (P.tail === 'flag' ? 3 : 1) && P.tip ? c.tip : fur(p);
+      const bulge = (P.tail === 'sweep' || P.tail === 'plume') ? Math.sin(k*Math.PI)*.035*tt : 0;
+      this.ball(p, lerp(tailSpec[1], tailSpec[2], k)*tt + bulge, tc);
       if (i === tailSpec[0]-1) this.tailTip = p;
     }
     if (P.tail === 'pom' && this.tailTip) this.ball(this.tailTip.clone().add(V(-.05, .05, 0)), .13, fur(this.tailTip));
@@ -435,29 +491,33 @@ class Dog {
     const hm = this.head.matrix, hr = this.hr, toW = (x, y, z) => V(x, y, z).applyMatrix4(hm);
     this.ball(J.head, hr, fur(J.head));
     const back = toW(-hr*.25, hr*.05, 0); this.ball(back, hr*.82, fur(back));
+    if (P.skullW > 1.04) [1,-1].forEach(s => { const p = toW(-hr*.05, hr*.02, s*hr*.32*P.skullW); this.ball(p, hr*.68, fur(p)); });
+    if (P.dome > 0) { const p = toW(-hr*.05, hr*.28, 0); this.ball(p, hr*(.72 + .2*P.dome), fur(p)); }
+    if (P.headLen > 1.05) { const p = toW(hr*.32*P.headLen, -hr*.04, 0); this.ball(p, hr*.66, fur(p)); }
     // markings on head
     if (has('cap')) this.ball(toW(-hr*.1, hr*.42, 0), hr*.62, c.dark);
     if (has('patches')) [1,-1].forEach(s => this.ball(toW(hr*.25, hr*.25, s*hr*.42), hr*.33, c.dark));
     if (has('merle')) { this.ball(toW(0, hr*.55, hr*.35), hr*.3, c.dark); this.ball(toW(hr*.1, hr*.4, -hr*.45), hr*.22, c.grey); }
     if (has('spots')) [[.2,.6,.4],[0,.5,-.6],[.4,.1,.7]].forEach(s => { const d = V(s[0], s[1], s[2]).normalize().multiplyScalar(hr*.95); this.ball(toW(d.x, d.y, d.z), hr*.16, c.spots); });
-    if (has('blaze')) { this.ball(toW(hr*.62, hr*.5, 0), hr*.22, c.belly); this.ball(toW(hr*.78, hr*.2, 0), hr*.2, c.belly); }
+    if (has('blaze')) { this.ball(toW(hr*.62, hr*.5, 0), hr*.22, c.belly); this.ball(toW(hr*.78 + .15*(P.headLen-1)*hr, hr*.2, 0), hr*.2, c.belly); }
     const muzC = has('darkmask') ? col(mixHex('#' + c.dark.getHexString(), '#000000', .15)) : has('tan') ? c.tan : (has('mask') ? c.belly : col(mixHex('#' + c.fur.getHexString(), '#' + c.belly.getHexString(), .55)));
     if (has('mask')) { this.ball(toW(hr*.45, -hr*.38, hr*.3), hr*.35, c.belly); this.ball(toW(hr*.45, -hr*.38, -hr*.3), hr*.35, c.belly); this.ball(toW(hr*.2, -hr*.62, 0), hr*.35, c.belly); }
-    if (fluffy) [1,-1].forEach(s => this.ball(toW(-hr*.05, -hr*.35, s*hr*.62), hr*.5, fur(J.head)));
-    if (curly) { this.ball(toW(-hr*.05, hr*.9, 0), hr*.55, fur(J.head)); this.ball(toW(hr*.2, hr*.8, 0), hr*.4, fur(J.head)); }
+    if (ruff > 0) [1,-1].forEach(s => { const p = toW(-hr*.1, -hr*.3, s*hr*(.6 + .08*ruff)); this.ball(p, hr*(.4 + .14*ruff), light && ruff > .9 ? light : fur(J.head)); });
+    if (curly) { this.ball(toW(-hr*.05, hr*.9, 0), hr*.55, fur(J.head)); this.ball(toW(hr*.2, hr*.8, 0), hr*.4, fur(J.head)); [1,-1].forEach(s => this.ball(toW(hr*.3, -hr*.25, s*hr*.5), hr*.38, fur(J.head))); }
+    if (clip) { this.ball(toW(-hr*.15, hr*.95, 0), hr*.62, fur(J.head)); this.ball(toW(hr*.15, hr*.85, 0), hr*.45, fur(J.head)); }
     // muzzle
-    const sn = P.snout, mlen = .1 + .22*sn;
-    const m1 = toW(hr*.6, -hr*.18, 0), m2 = toW(hr*.62 + mlen*.6, -hr*.2 - .02*sn, 0);
-    const mw = sn < .6 ? 1.25 : 1;
-    this.ball(m1, hr*.52*mw, muzC); this.ball(m2, hr*(.36 + .06*(1-sn))*mw, muzC);
-    if (sn < .6) [1,-1].forEach(s => this.ball(toW(hr*.62, -hr*.38, s*hr*.32), hr*.3, muzC));
-    const chin = toW(hr*.5, -hr*.5, 0); this.ball(chin, hr*.32, has('darkmask') ? muzC : (has('mask') || has('tan') ? muzC : c.belly));
+    const MG = this.MG, sn = MG.sn;
+    if (sn > 1.1) this.cap(toW(MG.m1.x, MG.m1.y, 0), toW(MG.m2.x, MG.m2.y, 0), MG.r1, MG.r2, muzC);
+    else { this.ball(toW(MG.m1.x, MG.m1.y, 0), MG.r1, muzC); this.ball(toW(MG.m2.x, MG.m2.y, 0), MG.r2, muzC); }
+    if (sn < .6) [1,-1].forEach(s => this.ball(toW(MG.m1.x + hr*.02, -hr*.38, s*hr*.32*Math.min(1.3, P.snoutW)), hr*.3, muzC));
+    if (P.jowl > 0) [1,-1].forEach(s => this.ball(toW(MG.m2.x - hr*.12, MG.m2.y - hr*.22, s*hr*.26*P.snoutW), hr*(.16 + .14*P.jowl), muzC));
+    const chin = toW(MG.m1.x - hr*.1, -hr*.5, 0); this.ball(chin, hr*.32, has('darkmask') ? muzC : (has('mask') || has('tan') ? muzC : c.belly));
     mc.update();
     // neck anchor for collar
     const n0 = J.neck[0], n1 = J.neck[1], dir = n1.clone().sub(n0).normalize();
     this.neck.position.copy(n0.clone().lerp(n1, .15)).addScaledVector(dir, -.03);
     this.neck.quaternion.setFromUnitVectors(V(1, 0, 0), dir);
-    if (this.bandana) { const nr = .25*Math.max(.9, P.chest); this.bandana.position.copy(n0).add(V(nr*.9, -nr*.15, 0)); this.bandana.rotation.set(0, 0, -.35 + (J.chest.y - J.hips.y)*.9); }
+    if (this.bandana) { const nr = .25*P.neckT*Math.max(.9, Math.min(P.chest, 1.05)); this.bandana.position.copy(n0).add(V(nr*.9, -nr*.15, 0)); this.bandana.rotation.set(0, 0, -.35 + (J.chest.y - J.hips.y)*.9); }
   }
 
   update(dt, ctx){
