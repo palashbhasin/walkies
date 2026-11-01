@@ -160,8 +160,8 @@ class Emitter {
 function muzzleGeo(P, hr){
   const sn = P.snout, mlen = .1 + .22*sn, base = hr*(.6 + .18*(P.headLen - 1));
   const mw = (sn < .6 ? 1.25 : 1)*P.snoutW;
-  const m1 = V(base, -hr*.18, 0), r1 = hr*.52*Math.min(1.25, mw);
-  const m2 = V(base + hr*.02 + mlen*.6, -hr*.2 - .02*sn - P.snoutDrop*hr, 0), r2 = hr*(.36 + .06*(1-sn))*mw;
+  const m1 = V(base, -hr*.18, 0), r1 = Math.max(.095, hr*.52*Math.min(1.25, mw));
+  const m2 = V(base + hr*.02 + mlen*.6, -hr*.2 - .02*sn - P.snoutDrop*hr, 0), r2 = Math.max(.072, hr*(.36 + .06*(1-sn))*mw);
   const nose = m2.clone().add(V(r2*.88, r2*.25, 0));
   return {m1, r1, m2, r2, nose, mw, sn};
 }
@@ -174,7 +174,13 @@ export class Dog {
     this.trick.position.y = .62;
     this.inner = new THREE.Group(); this.inner.position.y = -.62;
     this.root.add(this.trick); this.trick.add(this.inner);
-    this.H = 1.18; this.C = V(0, 1.02, 0);
+    { // size the field grid so long snouts and tails are not clipped
+      const P = this.P, hr0 = .25*P.head, MG0 = muzzleGeo(P, hr0);
+      const front = .34*P.body + .36*P.neck + (hr0 - .25)*.55 + MG0.nose.x + .08;
+      const back = .34*P.body + .3 + .56*P.tailLen*(['curl','plume','sickle','stub','pom'].includes(P.tail) ? .45 : 1) + .06;
+      this.H = Math.max(1.18, front, back); res = Math.round(res*this.H/1.18);
+    }
+    this.C = V(0, 1.02, 0);
     this.mat = furMaterial(this.P, {vertexColors:true});
     this.mc = new MarchingCubes(res, this.mat, false, true, thumb ? 30000 : 60000);
     this.mc.isolation = 80; this.mc.position.copy(this.C); this.mc.scale.setScalar(this.H);
@@ -286,7 +292,7 @@ export class Dog {
     nose.scale.set(.85, .75, 1.15); nose.position.copy(this.noseLocal); H.add(nose); this.nose = nose;
     // tongue
     const tg = new THREE.Mesh(new THREE.CapsuleGeometry(.035, .06, 6, 12), new THREE.MeshStandardMaterial({color:0xff7a93, roughness:.4}));
-    tg.scale.set(1, 1, 1.4); tg.position.set(this.noseLocal.x - m2r*.7, this.noseLocal.y - m2r*.95, 0); H.add(tg); this.tongueMesh = tg;
+    tg.scale.set(1, 1, 1.4); tg.position.set(MG.m2.x + Math.min(m2r*.15, .02), MG.m2.y - m2r*.72, 0); H.add(tg); this.tongueMesh = tg;
     // ears
     const earMat = furMaterial(P, {color: (this.has('cap') || this.has('patches') || this.has('saddle')) ? P.earFill : (P.ear === 'small' && !BREEDS[this.data.look].earFill ? mixHex(P.fur, '#000000', .12) : (P.ear === 'pointy' || P.ear === 'bat' || P.ear === 'fold' || P.ear === 'pompom' || P.ear === 'rose') ? P.fur : P.earFill)});
     this.mats.push(earMat);
@@ -421,7 +427,7 @@ export class Dog {
   }
   updateField(J){
     const P = this.P, c = this.colors, mc = this.mc, has = m => this.has(m);
-    mc.reset();
+    mc.reset(); this.lastJ = J; this.tailPts = [];
     const fur = p => this.colorAtY(p.y) || c.fur;
     const ck = P.chest, g = P.girth, tk = P.tuck, curly = P.coat === 'curly', clip = P.coat === 'clip';
     const ruff = P.ruff || (P.coat === 'fluffy' ? .6 : 0), fluff = P.fluff, fe = P.feath;
@@ -481,6 +487,7 @@ export class Dog {
       const tc = i >= tailSpec[0] - (P.tail === 'flag' ? 3 : 1) && P.tip ? c.tip : fur(p);
       const bulge = (P.tail === 'sweep' || P.tail === 'plume') ? Math.sin(k*Math.PI)*.035*tt : 0;
       this.ball(p, lerp(tailSpec[1], tailSpec[2], k)*tt + bulge, tc);
+      this.tailPts.push(p.clone());
       if (i === tailSpec[0]-1) this.tailTip = p;
     }
     if (P.tail === 'pom' && this.tailTip) this.ball(this.tailTip.clone().add(V(-.05, .05, 0)), .13, fur(this.tailTip));
@@ -538,17 +545,17 @@ export class Dog {
       ['chest','mid','hips','head'].forEach(k => { J[k].y += bob; }); J.neck.forEach(n => { n.y += bob; });
     }
     // breathing
-    const br = Math.sin(t*(this.sleep ? 1.4 : 2.6))*(this.sleep ? .012 : .008);
+    const br = Math.sin(t*(this.breathRate || (this.sleep ? 1.4 : 2.6)))*(this.sleep ? .012 : .008);
     J.chest.y += br; J.mid.y += br*.7;
     // tail wag
     const sad = this.mood < 25 && !this.sleep;
-    const wagSpeed = this.sleep ? 0 : (this.joy > 0 ? 22 : 1/Math.max(.12, this.wag)*5.5);
+    const wagSpeed = this.wagSpeed != null ? this.wagSpeed : this.sleep ? 0 : (this.joy > 0 ? 22 : 1/Math.max(.12, this.wag)*5.5);
     this.wagAngle = this.sleep ? 0 : Math.sin(t*wagSpeed)*(sad ? .15 : .6);
     if (sad) J.tailAng = Math.min(J.tailAng, -.3);
     // head look
     const lyTarget = this.sleep ? 0 : clamp(ctx.lookYaw || 0, -.7, .7);
     this.headYaw = lerp(this.headYaw, lyTarget, 1 - Math.pow(.02, dt));
-    let pitch = this.sleep ? -.1 : sad ? -.25 : Math.sin(t*.7)*.04;
+    let pitch = this.sleep ? -.1 : sad ? -.25 : (this.noSway ? 0 : Math.sin(t*.7)*.04);
     if (this.bark > 0) { this.bark -= dt; pitch += Math.abs(Math.sin(this.bark*22))*.18; }
     this.headPitch = lerp(this.headPitch, pitch + (ctx.tilt || 0), 1 - Math.pow(.01, dt));
     this.updateField(J);
@@ -566,7 +573,7 @@ export class Dog {
     // ears
     this.ears.forEach(e => {
       const b = e.userData.base, s = e.userData.s;
-      const flop = Math.sin(t*3 + s)*.04 + (wk > .01 ? Math.sin(this.walkPhase*2)*.1 : 0) + (sad ? s*.25 : 0);
+      const flop = (this.noSway ? 0 : Math.sin(t*3 + s)*.04) + (wk > .01 ? Math.sin(this.walkPhase*2)*.1 : 0) + (sad ? s*.25 : 0);
       e.rotation.x = b.x + flop*s; e.rotation.z = b.z + (sad ? .2 : 0);
     });
     if (this.spinMe) this.spinMe.rotation.y += dt*2;
@@ -882,3 +889,5 @@ export function renderThumb(dogLike, size = 128){
   thumbCache.set(key, url);
   return url;
 }
+
+export { makeToy, makeCrate, makeBed, tex };
